@@ -1,7 +1,9 @@
 import numpy as np
 import cv2
 from scipy.signal import find_peaks
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+import circle_fit
 
 input_img = cv2.imread('1492627187263118217/1.jpg')
 
@@ -60,11 +62,10 @@ def add_line_mark(input_img):
     # determined start point
 
     # delete triangle
-    mult_matrix = np.tri(600,600,420).T
-    input_img = input_img * mult_matrix * np.flip(np.tri(600,600,440).T,1)
+    mult_matrix = np.tri(600, 600, 420).T
+    input_img = input_img * mult_matrix * np.flip(np.tri(600, 600, 440).T, 1)
     # input_img[450:599, 0:150] = 0
     # input_img[450:599, 450:599] = 0
-
 
     # fill blank
     input_img_hist_shape = input_img[400:599, 0:599]
@@ -75,6 +76,7 @@ def add_line_mark(input_img):
     # use window to find points (windows size: H30 W50)
 
     def gen_windows(bottom_H, midpoint_W, H, W):
+        find_indicator = 1
         window = input_img[bottom_H - 30:bottom_H, midpoint_W - 50:midpoint_W + 50]
         H = 30
         W = 100
@@ -83,38 +85,38 @@ def add_line_mark(input_img):
         window_peak = find_peaks(histogram_window, distance=100)[0]
         return_mid = 0
         if window_peak.size > 0:
-            if window_peak > 5:
+            if window_peak > 10:
                 return_mid = midpoint_W - (W / 2) + window_peak
         else:
             return_mid = midpoint_W
+            find_indicator = 0
         # plt.plot(histogram_window)
         # plt.show()
         # print(return_mid)
-        return bottom_H - H / 2, return_mid
+        return bottom_H - H / 2, return_mid, find_indicator
 
     lane_list_L = []
     # gen_windows(299,peak[0],30,50)
-    plt.imshow(input_img)
 
+    plt.imshow(input_img)
 
     # iteraton(L)
     # print(peak_L)
 
-    def find_hist_iteration(baseline=500,start_W=0):
+    def find_hist_iteration(baseline=500, start_W=0):
 
-        input_img_hist_iter = input_img[baseline:baseline+ 99, start_W:start_W+300]
+        input_img_hist_iter = input_img[baseline:baseline + 99, start_W:start_W + 300]
         find_hist_iteration_iter = np.sum(input_img_hist_iter[input_img_hist_iter.shape[0] // 2:, :], axis=0)
         peak_hist = find_peaks(find_hist_iteration_iter, distance=180)[0]
 
-        if  find_hist_iteration_iter[peak_hist] < 10 or peak_hist.size==0:
+        if find_hist_iteration_iter[peak_hist] < 10 or peak_hist.size == 0:
             # print(find_peaks(find_hist_iteration_iter, distance=180))
             # print(baseline)
-            find_hist_iteration(baseline-50,start_W)
+            find_hist_iteration(baseline - 50, start_W)
         else:
             pass
 
-        return (peak_hist[0] + start_W)
-
+        return (peak_hist[0] + start_W), baseline + 50
 
     # find_hist_iteration()
     ##RIGHT
@@ -122,22 +124,57 @@ def add_line_mark(input_img):
     # histogram = np.sum(input_img_hist_shape[input_img_hist_shape.shape[0] // 2:, :], axis=0)
     # peak_L = find_peaks(histogram[300:599], distance=150)[0]
     # midpoint_tmp_L = peak_L[0] + offset
-    midpoint_tmp_R = find_hist_iteration(500, 300)
-    print(midpoint_tmp_R)
-    for bottom in range(599, 29, -30):
-        window_H, window_WM = gen_windows(bottom, midpoint_tmp_R, 30, 100)
-        midpoint_tmp_R = int(window_WM)
-        plt.scatter(midpoint_tmp_R, bottom)
 
-    midpoint_tmp_L = find_hist_iteration(500, 0)
-    print(midpoint_tmp_L)
-    for bottom in range(599, 29, -30):
-        window_H, window_WM = gen_windows(bottom, midpoint_tmp_L, 30, 100)
-        midpoint_tmp_L = int(window_WM)
-        plt.scatter(midpoint_tmp_L, bottom)
+    def find_point(start_W):
+        midpoint_arr_R = a = np.zeros((0, 2)).astype(int)
+        # print(midpoint_arr_R)
+        midpoint_tmp_R, bottom_R = find_hist_iteration(500, start_W)
+        # print(midpoint_tmp_R)
+        while bottom_R > 0:
+            window_H, window_WM, find_indicator = gen_windows(bottom_R, midpoint_tmp_R, 30, 100)
+            midpoint_tmp_R = int(window_WM)
 
-    #np.polyfit
+            if find_indicator == 1:
+                tmp_list = np.array([[midpoint_tmp_R, bottom_R]]).astype(int)
+                midpoint_arr_R = np.vstack([midpoint_arr_R, tmp_list])
+                # plt.scatter(midpoint_tmp_R, bottom_R)
+            bottom_R = bottom_R - 30
+        return midpoint_arr_R
 
+    midpoint_arr_R = find_point(300)
+    print(midpoint_arr_R.T)
+    plt.scatter(x=midpoint_arr_R.T[0], y=midpoint_arr_R.T[1])
+    ycl, xcl, rcl, _ = circle_fit.hyper_fit(midpoint_arr_R)
+    plt.gca().add_artist(plt.Circle((ycl, xcl), rcl, color='b', fill=False))
+
+    midpoint_arr_L = find_point(0)
+    print(midpoint_arr_L.T)
+    plt.scatter(x=midpoint_arr_L.T[0], y=midpoint_arr_L.T[1])
+    ycl, xcl, rcl, _ = circle_fit.hyper_fit(midpoint_arr_L)
+    plt.gca().add_artist(plt.Circle((ycl, xcl), rcl, color='r', fill=False))
+
+    # midpoint_tmp_L, bottom_L = find_hist_iteration(500, 0)
+    # midpoint_arr_L = np.zeros((0,2)).astype(int)
+    # # print(midpoint_tmp_L)
+    # while bottom_L > 0:
+    #     window_H, window_WM, find_indicator = gen_windows(bottom_L, midpoint_tmp_L, 30, 100)
+    #     midpoint_tmp_L = int(window_WM)
+    #
+    #     if find_indicator == 1:
+    #         tmp_list = np.array([[midpoint_tmp_L, bottom_L]]).astype(int)
+    #
+    #         midpoint_arr_L = np.vstack([midpoint_arr_L,tmp_list])
+    #         # print(midpoint_tmp_L)
+    #         plt.scatter(midpoint_tmp_L, bottom_L)
+    #     bottom_L = bottom_L - 30
+
+    # np.polyfit
+
+    plt.xlim(right=599)  # xmax is your value
+    plt.xlim(left=0)  # xmin is your value
+    plt.ylim(top=599)  # ymax is your value
+    plt.ylim(bottom=0)  # ymin is your value
+    plt.gca().invert_yaxis()
     plt.show()
 
     # ##RIGHT
@@ -161,6 +198,6 @@ def add_line_mark(input_img):
 
 
 for i in range(10, 11):
-    input_img = cv2.imread('1492626805094402903/' + str(i) + '.jpg')
+    input_img = cv2.imread('1492626270684175793/' + str(i) + '.jpg')
     input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
     transform(input_img, i)
