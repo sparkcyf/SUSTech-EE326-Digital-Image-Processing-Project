@@ -9,10 +9,14 @@ import json
 from skimage.filters import threshold_otsu
 import time
 
-input_img = cv2.imread('1492627187263118217/1.jpg')
+start_time = time.time()
 
 
-def transform(input_img, num):
+
+# input_img = cv2.imread('1492627187263118217/1.jpg')
+
+
+def transform(input_img, original_img, num):
     # rows, cols, ch = input_img.shape
     # print(input_img.shape)
 
@@ -24,7 +28,7 @@ def transform(input_img, num):
     # plt.imshow(dst), plt.title(foldername + filename), plt.savefig("ware_dataset/op/" + foldername + "_" + filename + "_transform.png", dpi=300)
 
     ##add line mark
-    dst_mark = add_line_mark(dst_extract, dst)
+    dst_mark = add_line_mark(dst_extract, dst, original_img)
 
     # plt.subplot(131), plt.imshow(input_img), plt.title('Input')
     # plt.subplot(132), plt.imshow(dst), plt.title('Output')
@@ -53,7 +57,7 @@ def transform_bare(input_img, num):
     b_thresh = (160, 255)
     g_thresh = (210, 255)
     dst_extract = get_bin_img(dst, kernel_size=kernel_size, sobel_thresh=mag_thresh, r_thresh=r_thresh,
-                              s_thresh=s_thresh, b_thresh=b_thresh, g_thresh=g_thresh)
+                              s_thresh=s_thresh, b_thresh=b_thresh, g_thresh=g_thresh) + abs_thresh(dst, sobel_kernel=3, mag_thresh=(35, 210), direction='x')
     # dst_extract = dst
 
     return dst, dst_extract
@@ -168,7 +172,7 @@ def abs_otsu(img):
     return binary
 
 
-def add_line_mark(input_img, dst):
+def add_line_mark(input_img, dst, original_img):
     # determined start point
 
     # delete triangle
@@ -208,8 +212,8 @@ def add_line_mark(input_img, dst):
 
     lane_list_L = []
     # gen_windows(299,peak[0],30,50)
-    plt.subplot(131)
-    plt.imshow(input_img)
+    # plt.subplot(131)
+    # plt.imshow(input_img)
     # plt.imshow(dst)
 
     input_img_hist_all = np.sum(input_img[input_img.shape[0] // 2:, :], axis=0)
@@ -263,20 +267,44 @@ def add_line_mark(input_img, dst):
         return midpoint_arr_R
 
     def fit_lane(midpoint):
+        midpoint_arr = np.zeros((0, 2)).astype(int)
+        xcl = 0
+        ycl = 0
+        rcl = 0
         try:
             midpoint_arr = find_point(midpoint - 100)
-            print(midpoint_arr.T)
-            plt.scatter(x=midpoint_arr.T[0], y=midpoint_arr.T[1], s=8)
+            # print(midpoint_arr.T)
+            # plt.scatter(x=midpoint_arr.T[0], y=midpoint_arr.T[1], s=8)
             ycl, xcl, rcl, _ = circle_fit.hyper_fit(midpoint_arr)
-            print(rcl)
-            if (rcl > 1000):
-                plt.gca().add_artist(plt.Circle((ycl, xcl), rcl, color='r', fill=False))
+            # print(rcl)
+            # if (rcl > 1000):
+            #     plt.gca().add_artist(plt.Circle((ycl, xcl), rcl, color='r', fill=False))
         except Exception:
             pass
         return midpoint_arr, ycl, xcl, rcl
 
+    mark_layer = np.zeros((600, 600, 3), np.uint8)
     for j in peak_hist_all[0]:
-        fit_lane(j)
+        point_array,ycl,xcl,rcl = fit_lane(j)
+
+        if point_array.size > 0 and rcl > 800 and rcl < 2147483647:
+            # print(point_array)
+            for point in point_array:
+                cv2.circle(mark_layer,tuple(point),10,(0,0,255),thickness=-1)
+                cv2.circle(mark_layer,tuple([int(ycl),int(xcl)]),int(rcl),(0,255,0),thickness=10)
+
+    pts2 = np.float32([[450, 300], [-851, 720], [870, 300], [2057, 720]])
+    pts1 = np.float32([[0, 0], [0, 600], [600, 0], [600, 600]])
+
+    M1 = cv2.getPerspectiveTransform(pts1, pts2)
+
+    mark_layer_trans = cv2.warpPerspective(mark_layer, M1, (1280,720))
+    mark_layer_mask = np.where(mark_layer_trans > 0,0,1)
+    original_img = original_img*mark_layer_mask + mark_layer_trans
+    plt.imshow(original_img)
+    # mark_layer_trans = cv2.addWeighted(mark_layer_trans, 1, original_img, 1, 0.0)
+
+
 
     # try:
     #     midpoint_arr_L = find_point(0)
@@ -300,21 +328,36 @@ def add_line_mark(input_img, dst):
 
     # np.polyfit
 
-    plt.xlim(right=599)  # xmax is your value
-    plt.xlim(left=0)  # xmin is your value
-    plt.ylim(top=599)  # ymax is your value
-    plt.ylim(bottom=0)  # ymin is your value
-    plt.gca().invert_yaxis()
-    # plt.title(str(i))
-    # plt.savefig("op/op_reg" + str(i) + ".png", dpi=300)
-    plt.title(foldername + filename)
+    # plt.xlim(right=599)  # xmax is your value
+    # plt.xlim(left=0)  # xmin is your value
+    # plt.ylim(top=599)  # ymax is your value
+    # plt.ylim(bottom=0)  # ymin is your value
+    # plt.gca().invert_yaxis()
+    # # plt.title(str(i))
+    # # plt.savefig("op/op_reg" + str(i) + ".png", dpi=300)
+    # plt.title(foldername + filename)
+    # # plt.savefig("op/" + foldername + "_" + filename + ".png", dpi=300)
+    # plt.subplot(132)
+    # plt.imshow(dst)
     # plt.savefig("op/" + foldername + "_" + filename + ".png", dpi=300)
-    plt.subplot(132)
-    plt.imshow(dst)
-    plt.savefig("op/" + foldername + "_" + filename + ".png", dpi=300)
-    # print("ware_dataset/op/" + foldername + "_" + filename + ".png")
-    blank_image = np.zeros((height, width, 3), np.uint8)
-    plt.close()
+    # # print("ware_dataset/op/" + foldername + "_" + filename + ".png")
+
+    # plt.xlim(right=1279)  # xmax is your value
+    # plt.xlim(left=0)  # xmin is your value
+    # plt.ylim(top=719)  # ymax is your value
+    # plt.ylim(bottom=0)  # ymin is your value
+    # plt.gca().invert_yaxis()
+    # # plt.title(str(i))
+    # # plt.savefig("op/op_reg" + str(i) + ".png", dpi=300)
+    # plt.title(foldername + "_" + filename)
+    # # plt.savefig("op/" + foldername + "_" + filename + ".png", dpi=300)
+    # # plt.subplot(132)
+    # # plt.imshow(dst)
+    # plt.savefig("op/" + foldername + "_" + filename + ".png", dpi=300)
+    # # print("ware_dataset/op/" + foldername + "_" + filename + ".png")
+
+    # plt.close()
+    cv2.imwrite("op/" + foldername + "_" + filename + ".png", original_img)
 
     return 0
 
@@ -324,11 +367,11 @@ rootdir = 'D:/train_set/clips/0531/'
 foldername = "null"
 
 for subdir, dirs, files in os.walk(rootdir):
-    print(dirs)
+    # print(dirs)
     for d in dirs:
         # for file in files:
         #     impath = os.path.join(subdir, file)
-        print(subdir)
+        # print(subdir)
         # read into seq
         # buffer first three image
 
@@ -347,6 +390,7 @@ for subdir, dirs, files in os.walk(rootdir):
 
             # yellow filter
             input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+            original_img = input_img
             img_buffer_array[rotate_num] = input_img
             input_img = (img_buffer_array[(rotate_num) % 4] * 0.25 + img_buffer_array[(rotate_num - 1) % 4] * 0.25 +
                          img_buffer_array[
@@ -360,7 +404,7 @@ for subdir, dirs, files in os.walk(rootdir):
             foldername = d
             filename = str(k2)
             i = 0
-            transform(input_img, i)
+            transform(input_img,original_img, i)
             # print(accuracy)
 
 # jsonString = json.dumps(accuracy)
@@ -371,3 +415,6 @@ for subdir, dirs, files in os.walk(rootdir):
 #     input_img = cv2.imread('1492626805094402903/' + str(i) + '.jpg')
 #     input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
 #     transform(input_img, i)
+
+
+print("--- %s seconds ---" % (time.time() - start_time))
