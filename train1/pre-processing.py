@@ -285,13 +285,14 @@ def add_line_mark(input_img, dst, original_img):
 
     mark_layer = np.zeros((600, 600, 3), np.uint8)
     for j in peak_hist_all[0]:
-        point_array,ycl,xcl,rcl = fit_lane(j)
+        if 100 < j < 500:
+            point_array,ycl,xcl,rcl = fit_lane(j)
 
-        if point_array.size > 0 and rcl > 800 and rcl < 2147483647:
-            # print(point_array)
-            for point in point_array:
-                cv2.circle(mark_layer,tuple(point),10,(0,0,255),thickness=-1)
-                cv2.circle(mark_layer,tuple([int(ycl),int(xcl)]),int(rcl),(0,255,0),thickness=10)
+            if point_array.size > 0 and rcl > 800 and rcl < 2147483647:
+                # print(point_array)
+                for point in point_array:
+                    cv2.circle(mark_layer,tuple(point),10,(0,0,255),thickness=-1)
+                    cv2.circle(mark_layer,tuple([int(ycl),int(xcl)]),int(rcl),(0,255,0),thickness=10)
 
     pts2 = np.float32([[450, 300], [-851, 720], [870, 300], [2057, 720]])
     pts1 = np.float32([[0, 0], [0, 600], [600, 0], [600, 600]])
@@ -301,7 +302,7 @@ def add_line_mark(input_img, dst, original_img):
     mark_layer_trans = cv2.warpPerspective(mark_layer, M1, (1280,720))
     mark_layer_mask = np.where(mark_layer_trans > 0,0,1)
     original_img = original_img*mark_layer_mask + mark_layer_trans
-    plt.imshow(original_img)
+
     # mark_layer_trans = cv2.addWeighted(mark_layer_trans, 1, original_img, 1, 0.0)
 
 
@@ -375,27 +376,27 @@ for subdir, dirs, files in os.walk(rootdir):
         # read into seq
         # buffer first three image
 
-        img_buffer_array = np.zeros([4, 720, 1280, 3]).astype('uint8')
-        for k1 in range(1, 4):
-            print(subdir + d + "/" + str(k1) + ".jpg")
-            input_img = cv2.imread(subdir + d + "/" + str(k1) + ".jpg")
-            input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
-            img_buffer_array[k1 - 1] = input_img
-            print(k1)
-        rotate_num = 3
+        # img_buffer_array = np.zeros([4, 720, 1280, 3]).astype('uint8')
+        # for k1 in range(1, 4):
+        #     print(subdir + d + "/" + str(k1) + ".jpg")
+        #     input_img = cv2.imread(subdir + d + "/" + str(k1) + ".jpg")
+        #     input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+        #     img_buffer_array[k1 - 1] = input_img
+        #     print(k1)
+        # rotate_num = 3
 
-        for k2 in range(4, 21):
+        for k2 in range(1, 21):
             input_img = cv2.imread(subdir + d + "/" + str(k2) + ".jpg")
             input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
 
             # yellow filter
             input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
             original_img = input_img
-            img_buffer_array[rotate_num] = input_img
-            input_img = (img_buffer_array[(rotate_num) % 4] * 0.25 + img_buffer_array[(rotate_num - 1) % 4] * 0.25 +
-                         img_buffer_array[
-                             (rotate_num - 2) % 4] * 0.25 + img_buffer_array[(rotate_num - 3) % 4] * 0.25).astype(
-                'uint8')
+            # img_buffer_array[rotate_num] = input_img
+            # input_img = (img_buffer_array[(rotate_num) % 4] * 0.25 + img_buffer_array[(rotate_num - 1) % 4] * 0.25 +
+            #              img_buffer_array[
+            #                  (rotate_num - 2) % 4] * 0.25 + img_buffer_array[(rotate_num - 3) % 4] * 0.25).astype(
+            #     'uint8')
             # input_img = np.maximum.reduce([img_buffer_array[(rotate_num) % 4], img_buffer_array[(rotate_num - 1) % 4],
             #                                img_buffer_array[(rotate_num - 2) % 4],
             #                                img_buffer_array[(rotate_num - 3) % 4]]).astype('uint8')
