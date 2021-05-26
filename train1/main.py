@@ -44,7 +44,30 @@ def lane_detection(input_img, original_img, i):
     # 3.1.1 eliminate the lower L/R traingle
     input_img = extracted_img
     tri_matrix = np.tri(600, 600, 420).T
-    input_img = input_img * tri_matrix * np.flip(np.tri(600, 600, 440).T, 1)
+    input_img = (input_img * tri_matrix * np.flip(np.tri(600, 600, 440).T, 1)).astype("uint8")
+
+    # 3.1.1.5 hough transform
+    # gaussian blur
+    blur_kernel = np.ones((3, 3), np.float32) / 9
+    input_img = cv2.filter2D(input_img, -1, blur_kernel)
+
+    # hough transform(could not use)
+    # hough_lines = cv2.HoughLinesP(input_img, rho=1, theta=1 * np.pi / 180, threshold=100, minLineLength=20, maxLineGap=200)
+    # line_nos = hough_lines.shape[0]
+    # hough_line_layer = np.zeros((600, 600, 1), np.uint8)
+    # for i in range(line_nos):
+    #     x_1 = hough_lines[i][0][0]
+    #     y_1 = hough_lines[i][0][1]
+    #     x_2 = hough_lines[i][0][2]
+    #     y_2 = hough_lines[i][0][3]
+    #     if np.abs((y_2-y_1)/(x_2-x_1))>5:
+    #         cv2.line(hough_line_layer, pt1=(x_1, y_1), pt2=(x_2, y_2), color=255, thickness=2)
+    #
+    # plt.subplot(121)
+    # plt.imshow(hough_line_layer)
+    # plt.subplot(122)
+    plt.imshow(input_img)
+    plt.show()
 
     # 3.1.2 find peak (line) number
     img_peak_histogram = ld_module_detection.intensity_map(input_img, 150)
@@ -59,9 +82,10 @@ def lane_detection(input_img, original_img, i):
             # print(point_array)
 
             # 3.1.3.1 draw line over the original image
-            if point_array.size > 0:
+            if point_array.size > 0 and rcl > 800 and rcl < 2147483647:
                 # and rcl > 800 and rcl < 2147483647
                 for point in point_array:
+                    # print(i)
                     cv2.circle(mark_layer, tuple(point), 10, (0, 0, 255), thickness=-1)
                     cv2.circle(mark_layer, tuple([int(ycl), int(xcl)]), int(rcl), (0, 255, 0), thickness=10)
 
@@ -117,6 +141,6 @@ for subdir, dirs, files in os.walk(rootdir):
             filename = str(k2)
             i = 0
 
-            lane_detection(input_img, original_img, i)
+            lane_detection(input_img, original_img, k2)
 
 print("--- %s seconds ---" % (time.time() - start_time))
