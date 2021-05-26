@@ -9,7 +9,7 @@ import json
 from skimage.filters import threshold_otsu
 import time
 import ld_module_binary
-
+from numba import njit, prange
 
 
 def transform_to(input_img):

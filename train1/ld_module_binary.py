@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import ld_module_transform
-
+from numba import njit, prange
 
 def get_bin_img(img, kernel_size=3, sobel_dirn='X', sobel_thresh=(0, 255), r_thresh=(0, 255),
                 s_thresh=(0, 255), b_thresh=(0, 255), g_thresh=(0, 255)):

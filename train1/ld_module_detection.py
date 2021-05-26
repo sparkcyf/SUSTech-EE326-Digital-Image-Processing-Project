@@ -8,7 +8,7 @@ import os
 import json
 from skimage.filters import threshold_otsu
 import time
-
+from numba import njit, prange
 
 def intensity_map(input_array, distance):
     histogram = np.sum(input_array[input_array.shape[0] // 2:, :], axis=0)
@@ -39,12 +39,14 @@ def find_point(input_img, start_W):
 def find_hist_iteration(input_img, baseline=500, start_W=0):
     input_img_hist_iter = input_img[baseline:baseline + 149, start_W:start_W + 200]
     find_hist_iteration_iter = np.sum(input_img_hist_iter[input_img_hist_iter.shape[0] // 2:, :], axis=0)
-    peak_hist = find_peaks(find_hist_iteration_iter, distance=250)[0] or [0]
-    if (find_hist_iteration_iter[peak_hist[0]] < 20) or peak_hist.size == 0:
-        find_hist_iteration(baseline - 50, start_W)
+    peak_hist = np.argmax(find_hist_iteration_iter)
+    if (find_hist_iteration_iter[peak_hist] < 20):
+        find_hist_iteration(input_img,baseline - 50, start_W)
     else:
         pass
-    return (peak_hist[0] + start_W), baseline + 50
+    return (peak_hist + start_W), baseline + 50
+
+
 
 
 def gen_windows(input_img, bottom_H, midpoint_W, H, W):
@@ -54,15 +56,13 @@ def gen_windows(input_img, bottom_H, midpoint_W, H, W):
     W = 100
     # window_arr = input_img[]
     histogram_window = np.sum(window[window.shape[0] // 2:, :], axis=0)
-    window_peak = find_peaks(histogram_window, distance=100)[0]
-
+    # window_peak = find_peaks(histogram_window, distance=100)[0]
+    window_peak = np.argmax(histogram_window)
     return_mid = 0
 
-    if window_peak.size > 0:
-        if histogram_window[window_peak] > 5 and np.abs(window_peak - (W / 2)) < 40:
-            return_mid = midpoint_W - (W / 2) + window_peak
-        else:
-            return_mid = midpoint_W
+
+    if histogram_window[window_peak] > 5 and np.abs(window_peak - (W / 2)) < 40:
+        return_mid = midpoint_W - (W / 2) + window_peak
     else:
         return_mid = midpoint_W
 
@@ -71,19 +71,21 @@ def gen_windows(input_img, bottom_H, midpoint_W, H, W):
     # plt.show()
     return bottom_H - H / 2, return_mid, find_indicator
 
+
 def fit_lane(input_img,midpoint):
     midpoint_arr = np.zeros((0, 2)).astype(int)
     xcl = 0
     ycl = 0
     rcl = 0
 
+    # midpoint_arr = find_point(input_img, midpoint - 100)
+    # divisionzero error !
+    # ycl, xcl, rcl, _ = circle_fit.hyper_fit(midpoint_arr)
+
     try:
         midpoint_arr = find_point(input_img,midpoint - 100)
-        # plt.scatter(x=midpoint_arr.T[0], y=midpoint_arr.T[1], s=8)
         ycl, xcl, rcl, _ = circle_fit.hyper_fit(midpoint_arr)
-        # print(rcl)
-        # if (rcl > 1000):
-        #     plt.gca().add_artist(plt.Circle((ycl, xcl), rcl, color='r', fill=False))
+        print(rcl)
     except Exception:
         pass
     return midpoint_arr, ycl, xcl, rcl
