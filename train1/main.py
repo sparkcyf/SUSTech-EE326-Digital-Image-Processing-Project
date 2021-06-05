@@ -10,10 +10,8 @@ import ld_module_binary
 import numpy as np
 import ld_module_detection
 
-start_time = time.time()
-
 # rootdir = 'D:/train_set/clips/0531/'
-rootdir = 'D:/train_set/clips/examine/'
+rootdir = 'input_img/'
 foldername = "null"
 
 
@@ -77,7 +75,7 @@ def lane_detection(input_img, original_img, i):
 
         # 4 save image
         # simulate not save image
-        cv2.imwrite("op_module/" + foldername + "_" + filename + ".png", original_img)
+        cv2.imwrite("output_img/" + foldername + "_" + filename + ".png", original_img)
 
 
 for subdir, dirs, files in os.walk(rootdir):
@@ -118,5 +116,3 @@ for subdir, dirs, files in os.walk(rootdir):
             i = 0
 
             lane_detection(input_img, original_img, i)
-
-print("--- %s seconds ---" % (time.time() - start_time))
