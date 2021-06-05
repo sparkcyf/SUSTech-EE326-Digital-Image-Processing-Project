@@ -91,7 +91,7 @@ def lane_detection(input_img, original_img, i):
     # plt.subplot(121)
 
     # 3.1.3 find lane via sliding window
-    plt.imshow(input_img)
+    # plt.imshow(input_img)
     mark_layer = np.zeros((600, 600, 3), np.uint8)
     for midpoint in img_peak_histogram:
         # midpoint (width)
@@ -134,8 +134,8 @@ def lane_detection(input_img, original_img, i):
     # simulate not save image
     cv2.imwrite("op_module/" + foldername + "_" + filename + ".png", original_img)
 
-    plt.imshow(cv2.cvtColor(original_img.astype("uint8"), cv2.COLOR_BGR2RGB))
-    plt.savefig("output.svg", format='svg', dpi=600)
+    # plt.imshow(cv2.cvtColor(original_img.astype("uint8"), cv2.COLOR_BGR2RGB))
+    # plt.savefig("output.svg", format='svg', dpi=600)
 
 
 for subdir, dirs, files in os.walk(rootdir):
@@ -159,7 +159,7 @@ for subdir, dirs, files in os.walk(rootdir):
             input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
 
             # yellow filter
-            input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+            # input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
             original_img = input_img
             # img_buffer_array[rotate_num] = input_img
             # input_img = (img_buffer_array[(rotate_num) % 4] * 0.25 + img_buffer_array[(rotate_num - 1) % 4] * 0.25 +
@@ -177,4 +177,3 @@ for subdir, dirs, files in os.walk(rootdir):
 
             lane_detection(input_img, original_img, k2)
 
-print("--- %s seconds ---" % (time.time() - start_time))

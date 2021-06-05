@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import ld_module_transform
 from numba import njit, prange
+import matplotlib.pyplot as plt
 
 def get_bin_img(img, kernel_size=3, sobel_dirn='X', sobel_thresh=(0, 255), r_thresh=(0, 255),
                 s_thresh=(0, 255), b_thresh=(0, 255), g_thresh=(0, 255)):
@@ -29,6 +30,7 @@ def get_bin_img(img, kernel_size=3, sobel_dirn='X', sobel_thresh=(0, 255), r_thr
     # Threshold R color channel
     r_binary = get_rgb_thresh_img(img, thresh=r_thresh)
 
+
     # Threshhold G color channel
     g_binary = get_rgb_thresh_img(img, thresh=g_thresh, channel='G')
 
@@ -38,9 +40,11 @@ def get_bin_img(img, kernel_size=3, sobel_dirn='X', sobel_thresh=(0, 255), r_thr
     # Threshold color channel
     s_binary = get_hls_sthresh_img(img, thresh=s_thresh)
 
+
     # If two of the three are activated, activate in the binary image
     combined_binary = np.zeros_like(combined)
     combined_binary[(r_binary == 1) | (combined == 1) | (s_binary == 1) | (b_binary == 1) | (g_binary == 1)] = 1
+
 
     return combined_binary
 
@@ -52,6 +56,7 @@ def get_hls_sthresh_img(img, thresh=(0, 255)):
     binary_output = np.zeros_like(S).astype(np.uint8)
     binary_output[(S >= thresh[0]) & (S < thresh[1])] = 1
 
+
     return binary_output
 
 
@@ -61,6 +66,7 @@ def get_lab_bthresh_img(img, thresh=(0, 255)):
 
     bin_op = np.zeros_like(B).astype(np.uint8)
     bin_op[(B >= thresh[0]) & (B < thresh[1])] = 1
+
 
     return bin_op
 
@@ -101,5 +107,6 @@ def abs_thresh(img, sobel_kernel=9, mag_thresh=(0, 255), return_grad=False, dire
 
     grad_binary = np.zeros_like(scaled_sobel)
     grad_binary[(scaled_sobel >= mag_thresh[0]) & (scaled_sobel < mag_thresh[1])] = 1
+
 
     return grad_binary
