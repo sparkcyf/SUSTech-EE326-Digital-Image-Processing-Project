@@ -34,5 +34,9 @@ The output with overlaid lane mark will be appeared in `output_img` folder.
 
 Checkout the `document` folder.
 
+## Want to view the assignment from the course?
+
+Checkout https://github.com/sparkcyf/SUSTech_EE326_Digital_image_Processing
+
 
 
